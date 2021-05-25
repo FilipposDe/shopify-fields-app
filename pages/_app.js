@@ -1,77 +1,72 @@
-import ApolloClient from "apollo-boost";
-import { ApolloProvider } from "react-apollo";
-import App from "next/app";
-import { AppProvider } from "@shopify/polaris";
-import { Provider, useAppBridge } from "@shopify/app-bridge-react";
-import { authenticatedFetch } from "@shopify/app-bridge-utils";
-import { Redirect } from "@shopify/app-bridge/actions";
-import "@shopify/polaris/dist/styles.css";
-import translations from "@shopify/polaris/locales/en.json";
+import { Provider, useAppBridge } from '@shopify/app-bridge-react'
+import '@shopify/polaris/dist/styles.css'
+import translations from '@shopify/polaris/locales/en.json'
+import {
+    AppProvider as PolarisProvider,
+    Frame,
+    Navigation,
+    TopBar,
+} from '@shopify/polaris'
+import ApolloAppProvider from '../components/ApolloAppProvider'
+import ClientRouter from '../components/ClientRouter'
+import { Redirect, AppLink, NavigationMenu } from '@shopify/app-bridge/actions'
+import '../static/custom.css'
 
-function userLoggedInFetch(app) {
-  const fetchFunction = authenticatedFetch(app);
+function MyApp(props) {
+    const { Component, pageProps, shopOrigin } = props
 
-  return async (uri, options) => {
-    const response = await fetchFunction(uri, options);
-
-    if (
-      response.headers.get("X-Shopify-API-Request-Failure-Reauthorize") === "1"
-    ) {
-      const authUrlHeader = response.headers.get(
-        "X-Shopify-API-Request-Failure-Reauthorize-Url"
-      );
-
-      const redirect = Redirect.create(app);
-      redirect.dispatch(Redirect.Action.APP, authUrlHeader || `/auth`);
-      return null;
+    const appBridgeConfig = {
+        apiKey: API_KEY,
+        shopOrigin: shopOrigin,
+        forceRedirect: true,
     }
 
-    return response;
-  };
-}
-
-function MyProvider(props) {
-  const app = useAppBridge();
-
-  const client = new ApolloClient({
-    fetch: userLoggedInFetch(app),
-    fetchOptions: {
-      credentials: "include",
-    },
-  });
-
-  const Component = props.Component;
-
-  return (
-    <ApolloProvider client={client}>
-      <Component {...props} />
-    </ApolloProvider>
-  );
-}
-
-class MyApp extends App {
-  render() {
-    const { Component, pageProps, shopOrigin } = this.props;
     return (
-      <AppProvider i18n={translations}>
-        <Provider
-          config={{
-            apiKey: API_KEY,
-            shopOrigin: shopOrigin,
-            forceRedirect: true,
-          }}
-        >
-          <MyProvider Component={Component} {...pageProps} />
-        </Provider>
-      </AppProvider>
-    );
-  }
+        <PolarisProvider i18n={translations}>
+            <Provider config={appBridgeConfig}>
+                <ApolloAppProvider shop={shopOrigin}>
+                    <Frame>
+                        <ClientRouter />
+                        <Component {...pageProps} />
+                    </Frame>
+                </ApolloAppProvider>
+            </Provider>
+        </PolarisProvider>
+    )
 }
 
 MyApp.getInitialProps = async ({ ctx }) => {
-  return {
-    shopOrigin: ctx.query.shop,
-  };
-};
+    return {
+        shopOrigin: ctx.query.shop,
+    }
+}
 
-export default MyApp;
+export default MyApp
+
+// function W(props) {
+
+//   const app = useAppBridge()
+
+//   const itemsLink = AppLink.create(app, {
+//     label: 'Products',
+//     destination: '/',
+//   });
+
+//   const settingsLink = AppLink.create(app, {
+//     label: 'Fields',
+//     destination: '/fields-list',
+//   });
+
+//   const navigationMenu = NavigationMenu.create(app, {
+//     items: [itemsLink, settingsLink],
+//     active: itemsLink,
+//   });
+
+//   console.log(`navigationMenu`, navigationMenu)
+
+//   return (
+//     <>
+//       { props.children }
+//     </>
+//   )
+// }

@@ -1,19 +1,28 @@
+// Needs:
+// eslint-plugin-prettier
+// eslint-config-prettier
 module.exports = {
-  extends: [
-    'plugin:shopify/react',
-    'plugin:shopify/polaris',
-    'plugin:shopify/jest',
-    'plugin:shopify/webpack',
-  ],
-  rules: {
-    'import/no-unresolved': 'off',
-  },
-  overrides: [
-    {
-      files: ['*.test.*'],
-      rules: {
-        'shopify/jsx-no-hardcoded-content': 'off',
-      },
+    parser: 'babel-eslint',
+    extends: [
+        'plugin:shopify/react',
+        'plugin:shopify/polaris',
+        'plugin:shopify/jest',
+        'plugin:shopify/webpack',
+        // Always at the end
+        'prettier',
+        // Further specific extends at the end
+        'prettier/react',
+    ],
+    rules: {
+        // For Next.js
+        'react/react-in-jsx-scope': 'off',
+        // Rest
+        'jsx-a11y/click-events-have-key-events': 'off',
+        'react/prop-types': 'off',
+        'no-undef': 'error',
     },
-  ],
-};
+    globals: {
+        process: true,
+    },
+    plugins: ['prettier'],
+}
