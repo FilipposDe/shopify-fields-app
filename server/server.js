@@ -43,7 +43,7 @@ mongoose
         })
     })
     .then(() => app.prepare())
-    .then(async (app) => {
+    .then(async () => {
         const server = new Koa()
         const router = new Router()
 
@@ -53,15 +53,21 @@ mongoose
                 async afterAuth(ctx) {
                     const { shop, accessToken, scope } = ctx.state.shopify
                     // ACTIVE_SHOPIFY_SHOPS[shop] = scope
-                    await Shop.create({ shopDomain: shop, isActive: true })
-
+                    await Shop.updateOne(
+                        { shopDomain: shop },
+                        { isActive: true }
+                    )
                     const response = await Shopify.Webhooks.Registry.register({
                         shop,
                         accessToken,
                         path: '/webhooks',
                         topic: 'APP_UNINSTALLED',
-                        webhookHandler: async (topic, shop, body) =>
-                            await Shop.deleteOne({ shopDomain: shop }),
+                        webhookHandler: async (topic, shop, body) => {
+                            await Shop.updateOne(
+                                { shopDomain: shop },
+                                { isActive: false }
+                            )
+                        },
                     })
 
                     if (!response.success) {
@@ -83,7 +89,7 @@ mongoose
 
         router.get('/', async (ctx) => {
             const shop = ctx.query.shop
-            const existingShop = await Shop.find({ shopDomain: shop })
+            const existingShop = await Shop.findOne({ shopDomain: shop })
 
             if (!existingShop || !existingShop.isActive) {
                 ctx.redirect(`/auth?shop=${shop}`)
@@ -111,6 +117,27 @@ mongoose
 
         router.get('(/_next/static/.*)', handleRequest)
         router.get('/_next/webpack-hmr', handleRequest)
+        router.all(
+            '(/api/.*)',
+            async (ctx, next) => {
+                try {
+                    await verifyRequest({ returnHeader: true })(ctx, next)
+                    // await next()
+                } catch (error) {
+                    if (error.name === 'InvalidJwtError') {
+                        console.log('E1')
+                    } else if (
+                        error instanceof Shopify.Errors.InvalidJwtError
+                    ) {
+                        console.log('E2')
+                    } else {
+                        throw error
+                    }
+                }
+            },
+            handleRequest
+        )
+
         router.get('(.*)', verifyRequest(), handleRequest)
 
         server.use(router.allowedMethods())

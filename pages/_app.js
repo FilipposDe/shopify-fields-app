@@ -6,14 +6,20 @@ import {
     Frame,
     Navigation,
     TopBar,
+    Toast,
 } from '@shopify/polaris'
 import ApolloAppProvider from '../components/ApolloAppProvider'
 import ClientRouter from '../components/ClientRouter'
 import { Redirect, AppLink, NavigationMenu } from '@shopify/app-bridge/actions'
 import '../static/custom.css'
+import { createContext, useState } from 'react'
+import { FrameContext } from '../components/FrameContext'
 
 function MyApp(props) {
     const { Component, pageProps, shopOrigin } = props
+
+    const [appState, setAppState] = useState({ toast: '', shop: shopOrigin })
+    const contextValue = { appState, setAppState }
 
     const appBridgeConfig = {
         apiKey: API_KEY,
@@ -25,10 +31,23 @@ function MyApp(props) {
         <PolarisProvider i18n={translations}>
             <Provider config={appBridgeConfig}>
                 <ApolloAppProvider shop={shopOrigin}>
-                    <Frame>
-                        <ClientRouter />
-                        <Component {...pageProps} />
-                    </Frame>
+                    <FrameContext.Provider value={contextValue}>
+                        <Frame>
+                            {appState.toast && (
+                                <Toast
+                                    content={appState.toast}
+                                    onDismiss={() =>
+                                        setAppState({
+                                            ...appState,
+                                            toast: '',
+                                        })
+                                    }
+                                />
+                            )}
+                            <ClientRouter />
+                            <Component {...pageProps} />
+                        </Frame>
+                    </FrameContext.Provider>
                 </ApolloAppProvider>
             </Provider>
         </PolarisProvider>

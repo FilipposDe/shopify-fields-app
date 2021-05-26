@@ -15,34 +15,29 @@ import {
     ResourceItem,
     ResourceList,
 } from '@shopify/polaris'
-import { useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { Redirect } from '@shopify/app-bridge/actions'
 import { useAppBridge } from '@shopify/app-bridge-react'
 import { fieldTypes } from '../lib/constants'
-
-const fields = [
-    {
-        id: '1',
-        name: 'Field1',
-        description: 'This is the 1st field',
-        type: fieldTypes.TEXT,
-    },
-    {
-        id: '2',
-        name: 'Field2',
-        description: 'This is the 2nd field',
-        type: fieldTypes.TEXT,
-    },
-]
+import { authenticatedFetch } from '@shopify/app-bridge-utils'
+import useSWR from 'swr'
+import { fetchWrapper } from '../lib/helpers'
+import { FrameContext } from '../components/FrameContext'
 
 const FieldsList = () => {
     const app = useAppBridge()
+    const { appState } = useContext(FrameContext)
+
+    const { data, error } = useSWR('/api/fields', (url) =>
+        fetchWrapper(app, appState.shop)(url).then((res) => res.json())
+    )
+    const loading = !data && !error
 
     const onItemClick = (id) => {
         Redirect.create(app).dispatch(Redirect.Action.APP, `/edit-field/${id}`)
     }
 
-    const emptyState = (
+    const emptyState = !loading && !data && (
         <EmptyState
             heading="Add custom fields to your products"
             action={{
@@ -87,12 +82,11 @@ const FieldsList = () => {
                 <Layout.Section>
                     <Card sectioned>
                         <IndexTable
-                            style={{ display: 'none' }}
                             resourceName={{
                                 singular: 'field',
                                 plural: 'fields',
                             }}
-                            itemCount={fields.length}
+                            itemCount={data?.length || 0}
                             emptyState={emptyState}
                             headings={[
                                 { title: 'Field Name' },
@@ -101,29 +95,36 @@ const FieldsList = () => {
                             ]}
                             selectable={false}
                             selectedItemsCount={0}
-                            loading={false}
+                            loading={loading}
                         >
-                            {fields.map((field) => (
-                                <IndexTable.Row key={field.id}>
-                                    <IndexTable.Cell flush>
-                                        <CellWrapper id={field.id}>
-                                            <TextStyle variation="strong">
-                                                {field.name}
-                                            </TextStyle>
-                                        </CellWrapper>
-                                    </IndexTable.Cell>
-                                    <IndexTable.Cell flush>
-                                        <CellWrapper id={field.id} xPadding>
-                                            {field.description}
-                                        </CellWrapper>
-                                    </IndexTable.Cell>
-                                    <IndexTable.Cell flush>
-                                        <CellWrapper id={field.id} xPadding>
-                                            {field.type}
-                                        </CellWrapper>
-                                    </IndexTable.Cell>
-                                </IndexTable.Row>
-                            ))}
+                            {Array.isArray(data) &&
+                                data.map((field) => (
+                                    <IndexTable.Row key={field._id}>
+                                        <IndexTable.Cell flush>
+                                            <CellWrapper id={field._id}>
+                                                <TextStyle variation="strong">
+                                                    {field.name}
+                                                </TextStyle>
+                                            </CellWrapper>
+                                        </IndexTable.Cell>
+                                        <IndexTable.Cell flush>
+                                            <CellWrapper
+                                                id={field._id}
+                                                xPadding
+                                            >
+                                                {field.description}
+                                            </CellWrapper>
+                                        </IndexTable.Cell>
+                                        <IndexTable.Cell flush>
+                                            <CellWrapper
+                                                id={field._id}
+                                                xPadding
+                                            >
+                                                {field.type}
+                                            </CellWrapper>
+                                        </IndexTable.Cell>
+                                    </IndexTable.Row>
+                                ))}
                         </IndexTable>
                     </Card>
                 </Layout.Section>

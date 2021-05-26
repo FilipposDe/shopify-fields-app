@@ -1,4 +1,10 @@
+/* Bug with Shopify: selecteble: false not workin
+*  Use CSS to disable checkboxes instead
+*/
 .Polaris-IndexTable__TableHeading--first,
 .Polaris-IndexTable__TableCell--first {
+    display: none;
+}
+.Polaris-IndexTable__StickyColumnHeaderCheckbox {
     display: none;
 }

@@ -20,6 +20,8 @@ module.exports = {
         'jsx-a11y/click-events-have-key-events': 'off',
         'react/prop-types': 'off',
         'no-undef': 'error',
+        'shopify/jsx-no-hardcoded-content': 'off',
+        'shopify/jsx-no-complex-expressions': 'off',
     },
     globals: {
         process: true,

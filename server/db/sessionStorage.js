@@ -3,14 +3,14 @@ import Shop from '../models/shop'
 
 const storeSession = async (session) => {
     try {
+        if (!session.shop) return false
+
         const existingSessionDoc = await findSessionDoc(session.id)
         if (existingSessionDoc) {
             existingSessionDoc.sessionData = session
             await existingSessionDoc.save()
             return true
         }
-
-        if (!session.shop) return false
 
         let shop
 

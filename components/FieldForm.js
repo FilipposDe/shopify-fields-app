@@ -45,7 +45,7 @@ function FieldForm(props) {
                     selected={formData.type}
                     onChange={(v) => setFormData({ ...formData, type: v })}
                 />
-                <Button submit primary>
+                <Button submit primary loading={props.loading}>
                     Save
                 </Button>
             </FormLayout>
