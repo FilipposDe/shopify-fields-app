@@ -36,15 +36,17 @@ function FieldForm(props) {
                     type="text"
                     max={300}
                 />
-                <ChoiceList
-                    title="Type"
-                    choices={[
-                        { label: 'Text', value: fieldTypes.TEXT },
-                        { label: 'Number', value: fieldTypes.NUMBER },
-                    ]}
-                    selected={formData.type}
-                    onChange={(v) => setFormData({ ...formData, type: v })}
-                />
+                {props.isTypeChangeable && (
+                    <ChoiceList
+                        title="Type"
+                        choices={[
+                            { label: 'Text', value: fieldTypes.TEXT },
+                            { label: 'Number', value: fieldTypes.NUMBER },
+                        ]}
+                        selected={formData.type}
+                        onChange={(v) => setFormData({ ...formData, type: v })}
+                    />
+                )}
                 <Button submit primary loading={props.loading}>
                     Save
                 </Button>

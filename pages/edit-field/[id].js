@@ -125,6 +125,7 @@ const EditField = () => {
                                     description: data.description,
                                     type: data.type,
                                 }}
+                                isTypeChangeable={false}
                                 onSubmit={onSubmit}
                                 loading={loading || submitLoading}
                             />
