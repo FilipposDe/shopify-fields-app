@@ -124,11 +124,7 @@ mongoose
                     await verifyRequest({ returnHeader: true })(ctx, next)
                     // await next()
                 } catch (error) {
-                    if (error.name === 'InvalidJwtError') {
-                        console.log('E1')
-                    } else if (
-                        error instanceof Shopify.Errors.InvalidJwtError
-                    ) {
+                    if (error instanceof Shopify.Errors.InvalidJwtError) {
                         console.log('E2')
                     } else {
                         throw error
