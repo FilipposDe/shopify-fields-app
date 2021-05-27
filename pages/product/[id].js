@@ -10,6 +10,7 @@ import {
     Page,
     TextField,
     Loading,
+    Stack,
 } from '@shopify/polaris'
 import { useContext, useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
@@ -167,21 +168,24 @@ const useMetafieldMutations = () => {
         mutation productUpdate($input: ProductInput!) {
             productUpdate(input: $input) {
                 product {
-                    id
-                    metafields {
-                        id
-                        value
+                    metafields(first: 250) {
+                        edges {
+                            node {
+                                id
+                                value
+                            }
+                        }
                     }
                 }
             }
         }
     `
 
-    // const [updateMetafields, { loading: updateLoading, error: updateError }] =
-    //     useMutation(UPDATE_MUTATION, { ignoreResults: true })
-    const updateMetafields = null
-    const updateLoading = null
-    const updateError = null
+    const [updateMetafields, { loading: updateLoading, error: updateError }] =
+        useMutation(UPDATE_MUTATION, { ignoreResults: true })
+    // const updateMetafields = null
+    // const updateLoading = null
+    // const updateError = null
 
     const [createMetafields, { loading: createLoading, error: createError }] =
         useMutation(CREATE_MUTATION, { ignoreResults: true })
@@ -218,6 +222,9 @@ const getMutationInputTables = (appFields, shopifyMetafields, formValues) => {
         const existsInShopify = shopifyMetafields[key]
 
         if (existsInShopify) {
+            const wasChanged = formValues[key] !== shopifyMetafields[key].value
+            if (!wasChanged) continue
+
             fieldsToUpdate.push({
                 id: shopifyMetafields[key].id,
                 value: formValues[key],
@@ -249,7 +256,7 @@ const useFormValues = (appFields, metafields, metafieldsAPIData) => {
 
         const values = {}
         appFields.forEach((item) => {
-            const value = metafields[item.name].value || ''
+            const value = metafields[item.name]?.value || ''
             values[item.name] = value
         })
 
@@ -309,12 +316,14 @@ const Product = () => {
             formValues
         )
 
-        // await updateMetafields({
-        //     input: {
-        //     id: `gid://shopify/Product/${id}`,
-        //     metafields: fieldsToUpdate,
-        //     },
-        // })
+        await updateMetafields({
+            variables: {
+                input: {
+                    id: `gid://shopify/Product/${id}`,
+                    metafields: fieldsToUpdate,
+                },
+            },
+        })
 
         console.log(fieldsToCreate)
 
@@ -329,7 +338,9 @@ const Product = () => {
             })
         }
 
-        await refetchMetafields()
+        if (fieldsToCreate.length > 0 || fieldsToUpdate.length > 0) {
+            await refetchMetafields()
+        }
     }
 
     console.log(metafields, formValues, appFields)
@@ -358,21 +369,32 @@ const Product = () => {
                         <Card sectioned>
                             <Form onSubmit={onSubmit}>
                                 <FormLayout>
-                                    {appFields.map((field) => {
-                                        return (
-                                            <TextField
-                                                key={field._id}
-                                                value={formValues[field.name]}
-                                                onChange={(v) =>
-                                                    setFormValues({
-                                                        ...formValues,
-                                                        [field.name]: v,
-                                                    })
-                                                }
-                                                label={field.name}
-                                            />
-                                        )
-                                    })}
+                                    <Stack>
+                                        {/* <Layout> */}
+                                        {/* <Layout.Section
+                                                    key={field._id}
+                                                    oneHalf
+                                                > */}
+                                        {appFields.map((field) => {
+                                            return (
+                                                <TextField
+                                                    key={field._id}
+                                                    value={
+                                                        formValues[field.name]
+                                                    }
+                                                    onChange={(v) =>
+                                                        setFormValues({
+                                                            ...formValues,
+                                                            [field.name]: v,
+                                                        })
+                                                    }
+                                                    label={field.name}
+                                                />
+                                            )
+                                        })}
+                                        {/* </Layout.Section> */}
+                                        {/* </Layout> */}
+                                    </Stack>
                                     <Button
                                         submit
                                         primary
