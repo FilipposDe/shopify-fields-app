@@ -11,6 +11,7 @@ import {
     Layout,
     Page,
     TextField,
+    Loading,
 } from '@shopify/polaris'
 import { useContext, useEffect, useState } from 'react'
 import FieldForm from '../../components/FieldForm'
@@ -115,10 +116,9 @@ const EditField = () => {
             )}
             <Layout>
                 <Layout.Section>
-                    <Card sectioned>
-                        {loading && 'Loading'}
-
-                        {data && (
+                    {loading && <Loading />}
+                    {!loading && data && (
+                        <Card sectioned>
                             <FieldForm
                                 initialData={{
                                     name: data.name,
@@ -129,8 +129,8 @@ const EditField = () => {
                                 onSubmit={onSubmit}
                                 loading={loading || submitLoading}
                             />
-                        )}
-                    </Card>
+                        </Card>
+                    )}
                 </Layout.Section>
             </Layout>
         </Page>

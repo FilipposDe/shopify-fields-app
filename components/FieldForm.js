@@ -16,38 +16,47 @@ import {
 function FieldForm(props) {
     const [formData, setFormData] = useState(props.initialData)
 
+    const isDataChanged = () =>
+        formData.name !== props.initialData.name ||
+        formData.description !== props.initialData.description ||
+        formData.type !== props.initialData.type
+
     return (
-        <Form onSubmit={() => props.onSubmit(formData)}>
+        <Form onSubmit={() => props.onSubmit(formData)} noValidate={false}>
             <FormLayout>
                 <TextField
                     value={formData.name}
                     onChange={(v) => setFormData({ ...formData, name: v })}
                     label="Field name"
                     type="text"
-                    min={3}
-                    max={30}
+                    minLength={3}
+                    maxLength={30}
                 />
                 <TextField
                     value={formData.description}
                     onChange={(v) =>
                         setFormData({ ...formData, description: v })
                     }
-                    label="Description"
+                    label="Description (optional)"
                     type="text"
-                    max={300}
+                    maxLength={300}
                 />
-                {props.isTypeChangeable && (
-                    <ChoiceList
-                        title="Type"
-                        choices={[
-                            { label: 'Text', value: fieldTypes.TEXT },
-                            { label: 'Number', value: fieldTypes.NUMBER },
-                        ]}
-                        selected={formData.type}
-                        onChange={(v) => setFormData({ ...formData, type: v })}
-                    />
-                )}
-                <Button submit primary loading={props.loading}>
+                <ChoiceList
+                    title="Type"
+                    choices={[
+                        { label: 'Text', value: fieldTypes.TEXT },
+                        { label: 'Number', value: fieldTypes.NUMBER },
+                    ]}
+                    selected={formData.type}
+                    onChange={(v) => setFormData({ ...formData, type: v[0] })}
+                    disabled={props.isTypeChangeable === false}
+                />
+                <Button
+                    submit
+                    primary
+                    loading={props.loading}
+                    disabled={!isDataChanged()}
+                >
                     Save
                 </Button>
             </FormLayout>

@@ -21,12 +21,7 @@ import { authenticatedFetch } from '@shopify/app-bridge-utils'
 import { FrameContext } from '../components/FrameContext'
 import { fetchWrapper } from '../lib/helpers'
 
-const types = {
-    TEXT: 'TEXT',
-    NUMBER: 'NUMBER',
-}
-
-const NewField = (props) => {
+const NewField = () => {
     const app = useAppBridge()
 
     const [error, setError] = useState('')
@@ -76,7 +71,7 @@ const NewField = (props) => {
             }
 
             const body = await res.json()
-            const { id } = body
+            // const { id } = body
 
             setAppState({ ...appState, toast: 'Saved' })
             setLoading(false)
@@ -116,7 +111,7 @@ const NewField = (props) => {
                     <Card sectioned>
                         <FieldForm
                             initialData={{
-                                key: '',
+                                name: '',
                                 description: '',
                                 type: fieldTypes.TEXT,
                             }}

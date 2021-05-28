@@ -109,7 +109,8 @@ mongoose
 
         router.post(
             '/graphql',
-            verifyRequest({ returnHeader: true }),
+            // verifyRequest({ returnHeader: true }),
+            handleInvalidJwtErrorWrapper(verifyRequest({ returnHeader: true })),
             async (ctx, next) => {
                 await Shopify.Utils.graphqlProxy(ctx.req, ctx.res)
             }
@@ -119,18 +120,7 @@ mongoose
         router.get('/_next/webpack-hmr', handleRequest)
         router.all(
             '(/api/.*)',
-            async (ctx, next) => {
-                try {
-                    await verifyRequest({ returnHeader: true })(ctx, next)
-                    // await next()
-                } catch (error) {
-                    if (error instanceof Shopify.Errors.InvalidJwtError) {
-                        console.log('E2')
-                    } else {
-                        throw error
-                    }
-                }
-            },
+            handleInvalidJwtErrorWrapper(verifyRequest({ returnHeader: true })),
             handleRequest
         )
 
@@ -142,3 +132,21 @@ mongoose
             console.log(`> Ready on http://localhost:${port}`)
         })
     })
+
+function handleInvalidJwtErrorWrapper(cb) {
+    return async (ctx, next) => {
+        try {
+            await cb(ctx, next)
+        } catch (error) {
+            if (error instanceof Shopify.Errors.InvalidJwtError) {
+                console.log('E2')
+                ctx.res.statusCode = 400
+                ctx.res.json({ error: 'Inactive JWT' })
+
+                // await next()
+            } else {
+                throw error
+            }
+        }
+    }
+}

@@ -3,18 +3,19 @@ import Shop from '../../../server/models/shop'
 
 export default async function handler(req, res) {
     try {
-        if (!['GET', 'PUT'].includes(req.method)) return res.status(405).end()
+        if (!['GET', 'PUT'].includes(req.method))
+            return res.status(405).json({ error: null })
 
         const { id: docId } = req.query
-        if (!docId) return res.status(400).end()
+        if (!docId) return res.status(400).json({ error: null })
         const session = await Shopify.Utils.loadCurrentSession(req, res)
         const shopDoc = await Shop.findOne({ shopDomain: session.shop })
 
-        if (!shopDoc) return res.status(401).end()
+        if (!shopDoc) return res.status(401).json({ error: null })
 
         const allFields = shopDoc.fields
         const foundField = await allFields.id(docId)
-        if (!foundField) return res.status(404).end()
+        if (!foundField) return res.status(404).json({ error: null })
 
         switch (req.method) {
             case 'GET': {
@@ -32,11 +33,11 @@ export default async function handler(req, res) {
                     foundField.description = description
                     await shopDoc.save()
                 }
-                return res.status(200).end()
+                return res.status(200).json({})
             }
         }
     } catch (e) {
         console.log(e)
-        return res.status(500).end()
+        return res.status(500).json({ error: null })
     }
 }

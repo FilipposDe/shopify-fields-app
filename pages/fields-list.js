@@ -21,15 +21,16 @@ import { useAppBridge } from '@shopify/app-bridge-react'
 import { fieldTypes } from '../lib/constants'
 import { authenticatedFetch } from '@shopify/app-bridge-utils'
 import useSWR from 'swr'
-import { fetchWrapper } from '../lib/helpers'
+import { fetchWrapper, getCustomJWTFetcher } from '../lib/helpers'
 import { FrameContext } from '../components/FrameContext'
 
 const FieldsList = () => {
     const app = useAppBridge()
     const { appState } = useContext(FrameContext)
 
-    const { data, error } = useSWR('/api/fields', (url) =>
-        fetchWrapper(app, appState.shop)(url).then((res) => res.json())
+    const { data, error } = useSWR(
+        '/api/fields',
+        getCustomJWTFetcher(app, appState.shop)
     )
     const loading = !data && !error
 

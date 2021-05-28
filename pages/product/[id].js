@@ -11,16 +11,21 @@ import {
     TextField,
     Loading,
     Stack,
+    Banner,
 } from '@shopify/polaris'
 import { useContext, useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { useAppBridge } from '@shopify/app-bridge-react'
 import { Redirect } from '@shopify/app-bridge/actions'
 import { gql, useMutation, useQuery } from '@apollo/client'
-import { APP_METAFIELD_NAMESPACE } from '../../lib/constants'
+import { APP_METAFIELD_NAMESPACE, fieldTypes } from '../../lib/constants'
 import { FrameContext } from '../../components/FrameContext'
 import useSWR from 'swr'
-import { fetchWrapper } from '../../lib/helpers'
+import {
+    CustomError,
+    fetchWrapper,
+    getCustomJWTFetcher,
+} from '../../lib/helpers'
 
 function useProduct(id) {
     const QUERY = gql`
@@ -135,16 +140,22 @@ function useShopifyMetafields(id) {
     }
 }
 
-const useAppFields = (app, shop) => {
-    const { data, error } = useSWR('/api/fields', (url) =>
-        fetchWrapper(app, shop)(url).then((res) => res.json())
+function useAppFields(app, shop) {
+    const { data, error } = useSWR(
+        '/api/fields',
+        getCustomJWTFetcher(app, shop)
     )
+
     const loading = !data && !error
 
-    return { appFields: data, appFieldsLoading: loading, appFieldsError: error }
+    return {
+        appFields: data,
+        appFieldsLoading: loading,
+        appFieldsError: error,
+    }
 }
 
-const useMetafieldMutations = () => {
+function useMetafieldMutations() {
     const CREATE_MUTATION = gql`
         mutation productUpdate($input: ProductInput!) {
             productUpdate(input: $input) {
@@ -181,35 +192,20 @@ const useMetafieldMutations = () => {
         }
     `
 
-    const [updateMetafields, { loading: updateLoading, error: updateError }] =
-        useMutation(UPDATE_MUTATION, { ignoreResults: true })
-    // const updateMetafields = null
-    // const updateLoading = null
-    // const updateError = null
+    const [updateMetafields, { error: updateError }] =
+        useMutation(UPDATE_MUTATION)
 
-    const [createMetafields, { loading: createLoading, error: createError }] =
-        useMutation(CREATE_MUTATION, { ignoreResults: true })
-
-    // const mock1 = (q) => {
-    //     console.log('_1')
-    //     console.log(q)
-    //     console.log(UPDATE_MUTATION)
-    // }
-    // const mock2 = (q) => {
-    //     console.log('_2')
-    //     console.log(q)
-    //     console.log(CREATE_MUTATION)
-    // }
+    const [createMetafields, { error: createError }] =
+        useMutation(CREATE_MUTATION)
 
     return {
-        updateMetafields, //: mock1,
-        createMetafields, //: mock2,
-        loading: updateLoading || createLoading,
+        updateMetafields,
+        createMetafields,
         error: updateError || createError,
     }
 }
 
-const getMutationInputTables = (appFields, shopifyMetafields, formValues) => {
+function getMutationInputTables(appFields, shopifyMetafields, formValues) {
     const appFieldsNormalized = {}
     appFields.forEach((item) => {
         appFieldsNormalized[item.name] = item
@@ -248,7 +244,7 @@ const getMutationInputTables = (appFields, shopifyMetafields, formValues) => {
     return { fieldsToCreate, fieldsToUpdate }
 }
 
-const useFormValues = (appFields, metafields, metafieldsAPIData) => {
+function useFormValues(appFields, metafields, metafieldsAPIData) {
     const [formValues, setFormValues] = useState({})
 
     useEffect(() => {
@@ -273,7 +269,7 @@ const Product = () => {
     const { id } = router.query
 
     // Global app context
-    const { appState } = useContext(FrameContext)
+    const { appState, setAppState } = useContext(FrameContext)
 
     // Fields from the app's database
     const { appFields, appFieldsLoading, appFieldsError } = useAppFields(
@@ -297,7 +293,6 @@ const Product = () => {
     const {
         updateMetafields,
         createMetafields,
-        loading: submitLoading,
         error: submitError,
     } = useMetafieldMutations()
 
@@ -308,42 +303,72 @@ const Product = () => {
         metafieldsAPIData
     )
 
+    // Mutations state
+    const [submitLoading, setSubmitLoading] = useState(false)
+
     const onSubmit = async () => {
-        // Two separate tables, for new and existing metafields
-        const { fieldsToCreate, fieldsToUpdate } = getMutationInputTables(
-            appFields,
-            metafields,
-            formValues
-        )
+        setSubmitLoading(true)
 
-        await updateMetafields({
-            variables: {
-                input: {
-                    id: `gid://shopify/Product/${id}`,
-                    metafields: fieldsToUpdate,
-                },
-            },
-        })
+        try {
+            // Two separate tables, for new and existing metafields
+            const { fieldsToCreate, fieldsToUpdate } = getMutationInputTables(
+                appFields,
+                metafields,
+                formValues
+            )
 
-        console.log(fieldsToCreate)
-
-        if (fieldsToCreate.length > 0) {
-            await createMetafields({
-                variables: {
-                    input: {
-                        id: `gid://shopify/Product/${id}`,
-                        metafields: fieldsToCreate,
+            if (fieldsToUpdate.length > 0) {
+                await updateMetafields({
+                    variables: {
+                        input: {
+                            id: `gid://shopify/Product/${id}`,
+                            metafields: fieldsToUpdate,
+                        },
                     },
-                },
-            })
-        }
+                })
+            }
 
-        if (fieldsToCreate.length > 0 || fieldsToUpdate.length > 0) {
-            await refetchMetafields()
+            if (fieldsToCreate.length > 0) {
+                await createMetafields({
+                    variables: {
+                        input: {
+                            id: `gid://shopify/Product/${id}`,
+                            metafields: fieldsToCreate,
+                        },
+                    },
+                })
+            }
+
+            if (fieldsToCreate.length > 0 || fieldsToUpdate.length > 0) {
+                await refetchMetafields()
+            }
+            setAppState({ ...appState, toast: 'Saved' })
+        } catch (error) {}
+
+        setSubmitLoading(false)
+    }
+
+    const getInputMode = (type) => {
+        switch (type) {
+            case fieldTypes.TEXT:
+                return 'text'
+            case fieldTypes.NUMBER:
+                return 'decimal'
+            default:
+                return 'text'
         }
     }
 
-    console.log(metafields, formValues, appFields)
+    const getErrorMessage = (error) => {
+        if (error) {
+            if (error instanceof CustomError) {
+                return error.message
+            } else {
+                return 'Unexpected error. Please try again later.'
+            }
+        }
+        return ''
+    }
 
     return (
         <Page
@@ -360,24 +385,40 @@ const Product = () => {
                     : ''
             }
         >
+            {appFieldsError ||
+                metafieldsError ||
+                productError ||
+                (submitError && (
+                    <div style={{ margin: '1.6rem 0' }}>
+                        <Banner title="Error" status="critical">
+                            <p>
+                                {getErrorMessage(
+                                    appFieldsError ||
+                                        metafieldsError ||
+                                        productError ||
+                                        submitError
+                                )}
+                            </p>
+                        </Banner>
+                    </div>
+                ))}
             <Layout>
                 <Layout.Section>
                     {(appFieldsLoading ||
                         productLoading ||
-                        metafieldsLoading) && <Loading />}
+                        metafieldsLoading ||
+                        submitLoading) && <Loading />}
                     {Array.isArray(appFields) && metafields && product && (
                         <Card sectioned>
                             <Form onSubmit={onSubmit}>
                                 <FormLayout>
                                     <Stack>
-                                        {/* <Layout> */}
-                                        {/* <Layout.Section
-                                                    key={field._id}
-                                                    oneHalf
-                                                > */}
                                         {appFields.map((field) => {
                                             return (
                                                 <TextField
+                                                    inputMode={getInputMode(
+                                                        field.type
+                                                    )}
                                                     key={field._id}
                                                     value={
                                                         formValues[field.name]
@@ -389,20 +430,17 @@ const Product = () => {
                                                         })
                                                     }
                                                     label={field.name}
+                                                    helpText={
+                                                        field.description || ''
+                                                    }
                                                 />
                                             )
                                         })}
-                                        {/* </Layout.Section> */}
-                                        {/* </Layout> */}
                                     </Stack>
                                     <Button
                                         submit
                                         primary
-                                        loading={
-                                            appFieldsLoading ||
-                                            productLoading ||
-                                            metafieldsLoading
-                                        }
+                                        loading={submitLoading}
                                     >
                                         Save
                                     </Button>

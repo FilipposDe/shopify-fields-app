@@ -8,3 +8,10 @@
 .Polaris-IndexTable__StickyColumnHeaderCheckbox {
     display: none;
 }
+
+@media (max-width: 464px) {
+    /* Set fill width to stack of form fields */
+    .Polaris-Stack > .Polaris-Stack__Item {
+        width: calc(100% - 1.6rem);
+    }
+}
