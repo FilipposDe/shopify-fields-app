@@ -25,7 +25,10 @@ const ApolloAppProvider = (props) => {
             typePolicies: {
                 Query: {
                     fields: {
-                        products: relayStylePagination(),
+                        products: {
+                            ...relayStylePagination(),
+                            keyArgs: ['query'],
+                        },
                         // products: {
                         //     keyArgs: false,
                         //     merge(existing = {}, incoming) {

@@ -10,77 +10,20 @@ import {
     Banner,
     Thumbnail,
     Pagination,
+    Filters,
 } from '@shopify/polaris'
 import { Redirect, AppLink, NavigationMenu } from '@shopify/app-bridge/actions'
 import { useAppBridge } from '@shopify/app-bridge-react'
-import { gql, useQuery } from '@apollo/client'
+import { gql, useQuery, useLazyQuery } from '@apollo/client'
 import { useEffect, useState } from 'react'
+import { useAllProducts, useSearchProducts } from '../lib/hooks'
 
 const Index = () => {
     const app = useAppBridge()
 
-    const QUERY = gql`
-        query Products($first: Int!, $after: String, $before: String) {
-            products(first: $first, after: $after, before: $before) {
-                edges {
-                    cursor
-                    node {
-                        id
-                        title
-                        images(first: 1) {
-                            edges {
-                                node {
-                                    originalSrc
-                                    altText
-                                }
-                            }
-                        }
-                    }
-                }
-                pageInfo {
-                    hasNextPage
-                    hasPreviousPage
-                }
-            }
-        }
-    `
-
-    const { data, loading, error, fetchMore } = useQuery(QUERY, {
-        variables: {
-            first: 10,
-            // after: cursors.first,
-        },
-    })
-
-    const [cursors, setCursors] = useState({ first: '', last: '' })
-
-    const products = data?.products?.edges?.map((edge) => edge.node)
-
-    const responseCursors = data?.products?.edges?.map((edge) => edge.cursor)
-    const firstCursor = responseCursors?.[0]
-    const lastCursor = responseCursors?.[responseCursors?.length - 1]
-    const hasPreviousPage = data?.products?.pageInfo?.hasPreviousPage
-    const hasNextPage = data?.products?.pageInfo?.hasNextPage
-
-    useEffect(() => {
-        setCursors({ last: lastCursor || null, first: firstCursor || null })
-    }, [firstCursor, lastCursor])
-
-    // console.log('firstCursor', firstCursor)
-    // console.log('lastCursor', lastCursor)
-    // console.log('hasPreviousPage', hasPreviousPage)
-    // console.log('hasNextPage', hasNextPage)
-    // console.log('cursors', cursors)
-    // console.log('data', data)
-    // console.log(
-    //     'products',
-    //     products?.map((i) => i.title)
-    // )
-
-    // const products = []
-    // console.log('1', data)
-    // console.log('2', error)
-    // console.log('3', loading)
+    const { products, loading, error, fetchNext, hasNext } = useAllProducts()
+    const { query, productResults, searchLoading, searchError, search } =
+        useSearchProducts()
 
     const emptyState =
         !loading && !products?.length ? (
@@ -118,12 +61,21 @@ const Index = () => {
         )
     }
 
+    const filterControl = (
+        <Filters
+            filters={[]}
+            queryValue={query}
+            onQueryChange={search}
+            onQueryClear={() => search('')}
+        />
+    )
+
     return (
         <Page
             title="Products"
             subtitle="Click on a product to edit its custom fields"
         >
-            {error && (
+            {(error || searchError) && (
                 <div style={{ margin: '1.6rem 0' }}>
                     <Banner title="Error" status="critical">
                         <p>Unexpected error. Please try again later.</p>
@@ -134,13 +86,14 @@ const Index = () => {
                 <Layout.Section>
                     <Card sectioned>
                         <ResourceList
-                            emptyState={!error && emptyState}
-                            loading={loading}
-                            items={products || []}
+                            emptyState={!error && !searchError && emptyState}
+                            loading={loading || searchLoading}
+                            items={(query ? productResults : products) || []}
                             resourceName={{
                                 singular: 'product',
                                 plural: 'products',
                             }}
+                            filterControl={filterControl}
                             renderItem={(item) => (
                                 <ResourceItem
                                     id={item.id}
@@ -165,29 +118,15 @@ const Index = () => {
                                 </ResourceItem>
                             )}
                         />
-                        <Pagination
-                            hasPrevious={false}
-                            onPrevious={() => {
-                                const variables = { first: 10 }
-                                if (cursors.first) {
-                                    variables['before'] = cursors.first
-                                }
-                                console.log('next@b')
-                                console.log(variables)
-                                fetchMore({ variables })
-                            }}
-                            hasNext={hasNextPage}
-                            onNext={() => {
-                                const variables = { first: 10 }
-                                if (cursors.last) {
-                                    variables['after'] = cursors.last
-                                }
-                                console.log('next@')
-                                console.log(variables)
-                                fetchMore({ variables })
-                            }}
-                            label="More"
-                        />
+                        {!query && (
+                            <Pagination
+                                hasPrevious={false}
+                                onPrevious={() => {}}
+                                hasNext={hasNext}
+                                onNext={fetchNext}
+                                label="More"
+                            />
+                        )}
                     </Card>
                 </Layout.Section>
             </Layout>
