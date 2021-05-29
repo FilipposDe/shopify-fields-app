@@ -1,6 +1,9 @@
 import { ApolloClient, InMemoryCache, HttpLink } from '@apollo/client'
 import { ApolloProvider } from '@apollo/client/react'
-import { offsetLimitPagination } from '@apollo/client/utilities'
+import {
+    offsetLimitPagination,
+    relayStylePagination,
+} from '@apollo/client/utilities'
 import { useAppBridge } from '@shopify/app-bridge-react'
 import { fetchWrapper } from '../lib/helpers'
 
@@ -22,52 +25,133 @@ const ApolloAppProvider = (props) => {
             typePolicies: {
                 Query: {
                     fields: {
-                        products: {
-                            keyArgs: false,
-                            merge(existing = {}, incoming) {
-                                console.log('merge!')
+                        products: relayStylePagination(),
+                        // products: {
+                        //     keyArgs: false,
+                        //     merge(existing = {}, incoming) {
+                        //         // {__typename: "ProductConnection", edges: Array(10), pageInfo: {…}}
+                        //         const existingEdges = existing?.edges || []
+                        //         const incomingEdges = incoming?.edges || []
 
-                                // const existingProducts = existing?.edges || []
-                                // ?.map((edge) => edge.node) ||
-                                // []
+                        //         const merged = {
+                        //             ...existing,
+                        //             ...incoming,
+                        //             edges: [...existingEdges, ...incomingEdges],
+                        //         }
+                        //         return merged
+                        //     },
+                        //     read(
+                        //         existing,
+                        //         {
+                        //             variables: {
+                        //                 first: limit = 10,
+                        //                 after: afterCursor = '',
+                        //                 before: beforeCursor = '',
+                        //             },
+                        //         }
+                        //     ) {
+                        //         debugger
 
-                                // const incomingCursors = incoming?.edges?.map(
-                                //     (edge) => edge.cursor
-                                // )
+                        //         if (!existing) return undefined
 
-                                // {__typename: "ProductConnection", edges: Array(10), pageInfo: {…}}
+                        //         const array = existing?.edges || []
 
-                                const existingEdges = existing?.edges || []
-                                const incomingEdges = incoming?.edges || []
+                        //         if (array.length === 0) {
+                        //             return {
+                        //                 ...existing,
+                        //             }
+                        //         }
 
-                                const merged = {
-                                    ...existing,
-                                    ...incoming,
-                                    edges: [...existingEdges, ...incomingEdges],
-                                }
-                                // const incomingProducts = incoming?.edges || []
-                                // ?.map((edge) => edge.node) ||
-                                // []
+                        //         const isFirstPage =
+                        //             !afterCursor && !beforeCursor
 
-                                // console.log(existingProducts)
-                                // console.log(incoming)
-                                // console.log(incomingProducts)
-                                return merged
-                                // return [
-                                //     ...existingProducts,
-                                //     ...incomingProducts,
-                                // ]
-                            },
-                            // read(
-                            //     existing
-                            //     // { args: { first = 0, after = '', before = '' } }
-                            // ) {
-                            //     // existing.find((item, index) => index.cursor )
-                            //     console.log('read!')
-                            //     console.log(existing)
-                            //     return existing // && existing.slice(first, )
-                            // },
-                        },
+                        //         if (isFirstPage) {
+                        //             return {
+                        //                 ...existing,
+                        //                 edges: array.slice(0, limit),
+                        //                 pageInfo: {
+                        //                     // Since it's the 1st page
+                        //                     hasPreviousPage: false,
+                        //                     // Either cache has more items, or query says there's more
+                        //                     hasNextPage:
+                        //                         array.length > limit ||
+                        //                         existing.pageInfo.hasNextPage,
+                        //                 },
+                        //             }
+                        //         }
+
+                        //         if (afterCursor) {
+                        //             let afterIndex = 0
+                        //             for (let i = 0; i < array.length; i++) {
+                        //                 if (array[i]?.cursor === afterCursor) {
+                        //                     afterIndex = i
+                        //                     break
+                        //                 }
+                        //             }
+
+                        //             const startIndex = afterIndex + 1
+                        //             const endIndex = afterIndex + 1 + limit
+
+                        //             const edgesSlice = array.slice(
+                        //                 startIndex,
+                        //                 endIndex
+                        //             )
+
+                        //             const cacheHasMore = array.length > endIndex
+
+                        //             const newPageInfo = {
+                        //                 // It's not the first page since there's an item before
+                        //                 hasPreviousPage: true,
+                        //                 // Cache already has extra items, or latest query says there's more
+                        //                 hasNextPage:
+                        //                     cacheHasMore ||
+                        //                     existing.pageInfo.hasNextPage,
+                        //             }
+
+                        //             return {
+                        //                 ...existing,
+                        //                 edges: edgesSlice,
+                        //                 pageInfo: newPageInfo,
+                        //             }
+                        //         }
+
+                        //         if (beforeCursor) {
+                        //             let beforeIndex = limit
+                        //             for (let i = 0; i < array.length; i++) {
+                        //                 if (array[i]?.cursor === beforeCursor) {
+                        //                     beforeIndex = i
+                        //                     break
+                        //                 }
+                        //             }
+
+                        //             const startIndex = beforeIndex - limit
+                        //             const endIndex = beforeIndex
+
+                        //             const edgesSlice = array.slice(
+                        //                 startIndex,
+                        //                 endIndex
+                        //             )
+
+                        //             const cacheHasMoreBehind = startIndex > 0
+
+                        //             const newPageInfo = {
+                        //                 // It's not the last page since there's an 'after' item we excluded
+                        //                 hasNextPage: true,
+                        //                 // Cache already has items before, or latest query says there's more(?)
+                        //                 hasPreviousPage: cacheHasMoreBehind,
+                        //                 //    || existing.pageInfo.hasNextPage,
+                        //             }
+
+                        //             return {
+                        //                 ...existing,
+                        //                 edges: edgesSlice,
+                        //                 pageInfo: newPageInfo,
+                        //             }
+                        //         }
+
+                        //         return existing // && existing.slice(first, )
+                        //     },
+                        // },
                     },
                 },
             },

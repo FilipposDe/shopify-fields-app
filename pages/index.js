@@ -165,13 +165,15 @@ const Index = () => {
                                 </ResourceItem>
                             )}
                         />
-                        {/* <Pagination
-                            hasPrevious={hasPreviousPage}
+                        <Pagination
+                            hasPrevious={false}
                             onPrevious={() => {
                                 const variables = { first: 10 }
                                 if (cursors.first) {
                                     variables['before'] = cursors.first
                                 }
+                                console.log('next@b')
+                                console.log(variables)
                                 fetchMore({ variables })
                             }}
                             hasNext={hasNextPage}
@@ -180,9 +182,12 @@ const Index = () => {
                                 if (cursors.last) {
                                     variables['after'] = cursors.last
                                 }
+                                console.log('next@')
+                                console.log(variables)
                                 fetchMore({ variables })
                             }}
-                        /> */}
+                            label="More"
+                        />
                     </Card>
                 </Layout.Section>
             </Layout>
