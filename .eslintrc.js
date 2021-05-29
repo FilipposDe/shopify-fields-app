@@ -14,9 +14,8 @@ module.exports = {
         'prettier/react',
     ],
     rules: {
-        // For Next.js
         'react/react-in-jsx-scope': 'off',
-        // Rest
+        'react-hooks/exhaustive-deps': 'off',
         'jsx-a11y/click-events-have-key-events': 'off',
         'react/prop-types': 'off',
         'no-undef': 'error',

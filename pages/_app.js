@@ -61,31 +61,3 @@ MyApp.getInitialProps = async ({ ctx }) => {
 }
 
 export default MyApp
-
-// function W(props) {
-
-//   const app = useAppBridge()
-
-//   const itemsLink = AppLink.create(app, {
-//     label: 'Products',
-//     destination: '/',
-//   });
-
-//   const settingsLink = AppLink.create(app, {
-//     label: 'Fields',
-//     destination: '/fields-list',
-//   });
-
-//   const navigationMenu = NavigationMenu.create(app, {
-//     items: [itemsLink, settingsLink],
-//     active: itemsLink,
-//   });
-
-//   console.log(`navigationMenu`, navigationMenu)
-
-//   return (
-//     <>
-//       { props.children }
-//     </>
-//   )
-// }

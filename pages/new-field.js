@@ -1,31 +1,14 @@
-import {
-    Banner,
-    Button,
-    Card,
-    Checkbox,
-    ChoiceList,
-    Form,
-    FormLayout,
-    Heading,
-    Layout,
-    Page,
-    Toast,
-    TextField,
-} from '@shopify/polaris'
+import { Banner, Card, Layout, Page } from '@shopify/polaris'
 import { useContext, useEffect, useState } from 'react'
 import FieldForm from '../components/FieldForm'
-import { Redirect } from '@shopify/app-bridge/actions'
 import { useAppBridge } from '@shopify/app-bridge-react'
 import { fieldTypes } from '../lib/constants'
-import { authenticatedFetch } from '@shopify/app-bridge-utils'
 import { FrameContext } from '../components/FrameContext'
-import { fetchWrapper } from '../lib/helpers'
+import { clientRedirect } from '../lib/helpers'
+import { useCreateField } from '../lib/hooks'
 
 const NewField = () => {
     const app = useAppBridge()
-
-    const [error, setError] = useState('')
-    const [loading, setLoading] = useState('')
 
     const { appState, setAppState } = useContext(FrameContext)
 
@@ -34,53 +17,12 @@ const NewField = () => {
         setAppState({ ...appState, toast: '' })
     }, [])
 
+    const { createField, error, loading } = useCreateField()
+
     const onSubmit = async (data) => {
-        setLoading(true)
-        setError('')
-
-        const fetch = fetchWrapper(app, appState.shop)
-
-        try {
-            const res = await fetch('/api/field', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data),
-            })
-
-            if (
-                res.status !== 200 &&
-                res.headers
-                    .get('content-type')
-                    ?.toLocaleLowerCase()
-                    ?.includes('application/json')
-            ) {
-                const body = await res.json()
-                setError(
-                    body.error || 'Unexpected error. Please try again later.'
-                )
-                setLoading(false)
-                return
-            }
-
-            if (res.status !== 200) {
-                setError('Unexpected error. Please try again later.')
-                setLoading(false)
-                return
-            }
-
-            const body = await res.json()
-            // const { id } = body
-
-            setAppState({ ...appState, toast: 'Saved' })
-            setLoading(false)
-
-            Redirect.create(app).dispatch(Redirect.Action.APP, `/fields-list`)
-        } catch (e) {
-            setError('Unexpected error. Please try again later.')
-            setLoading(false)
-            return
+        const id = await createField(data)
+        if (id) {
+            clientRedirect(app, '/fields-list')
         }
     }
 
@@ -89,11 +31,9 @@ const NewField = () => {
             breadcrumbs={[
                 {
                     content: 'Fields',
-                    onAction: () =>
-                        Redirect.create(app).dispatch(
-                            Redirect.Action.APP,
-                            `/fields-list`
-                        ),
+                    onAction: () => {
+                        clientRedirect(app, '/fields-list')
+                    },
                 },
             ]}
             title="New field"

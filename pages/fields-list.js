@@ -3,25 +3,13 @@ import {
     EmptyState,
     Layout,
     Page,
-    Button,
-    Checkbox,
-    ChoiceList,
-    Form,
-    FormLayout,
-    Heading,
-    TextField,
     IndexTable,
     TextStyle,
-    ResourceItem,
-    ResourceList,
 } from '@shopify/polaris'
-import { useContext, useEffect, useState } from 'react'
-import { Redirect } from '@shopify/app-bridge/actions'
+import { useContext } from 'react'
 import { useAppBridge } from '@shopify/app-bridge-react'
-import { fieldTypes } from '../lib/constants'
-import { authenticatedFetch } from '@shopify/app-bridge-utils'
 import useSWR from 'swr'
-import { fetchWrapper, getCustomJWTFetcher } from '../lib/helpers'
+import { clientRedirect, getAppFetch } from '../lib/helpers'
 import { FrameContext } from '../components/FrameContext'
 
 const FieldsList = () => {
@@ -30,24 +18,21 @@ const FieldsList = () => {
 
     const { data, error } = useSWR(
         '/api/fields',
-        getCustomJWTFetcher(app, appState.shop)
+        getAppFetch(app, appState.shop, true)
     )
     const loading = !data && !error
 
     const onItemClick = (id) => {
-        Redirect.create(app).dispatch(Redirect.Action.APP, `/edit-field/${id}`)
+        clientRedirect(app, `/edit-field/${id}`)
     }
 
-    const emptyState = !loading && !data && (
+    const emptyState = (
         <EmptyState
             heading="Add custom fields to your products"
             action={{
                 content: 'New field',
                 onAction: () => {
-                    Redirect.create(app).dispatch(
-                        Redirect.Action.APP,
-                        '/new-field'
-                    )
+                    clientRedirect(app, '/new-field')
                 },
             }}
             image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
@@ -65,6 +50,8 @@ const FieldsList = () => {
         </div>
     )
 
+    const showEmptyState = () => !loading && !data
+
     return (
         <Page
             title="Fields"
@@ -72,10 +59,7 @@ const FieldsList = () => {
             primaryAction={{
                 content: 'New field',
                 onAction: () => {
-                    Redirect.create(app).dispatch(
-                        Redirect.Action.APP,
-                        '/new-field'
-                    )
+                    clientRedirect(app, '/new-field')
                 },
             }}
         >
@@ -88,7 +72,7 @@ const FieldsList = () => {
                                 plural: 'fields',
                             }}
                             itemCount={data?.length || 0}
-                            emptyState={emptyState}
+                            emptyState={showEmptyState() && emptyState}
                             headings={[
                                 { title: 'Field Name' },
                                 { title: 'Description' },

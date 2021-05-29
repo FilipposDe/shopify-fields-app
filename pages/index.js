@@ -1,7 +1,6 @@
 import {
     Card,
     EmptyState,
-    Heading,
     Layout,
     Page,
     ResourceItem,
@@ -12,11 +11,10 @@ import {
     Pagination,
     Filters,
 } from '@shopify/polaris'
-import { Redirect, AppLink, NavigationMenu } from '@shopify/app-bridge/actions'
 import { useAppBridge } from '@shopify/app-bridge-react'
-import { gql, useQuery, useLazyQuery } from '@apollo/client'
-import { useEffect, useState } from 'react'
 import { useAllProducts, useSearchProducts } from '../lib/hooks'
+import { clientRedirect } from '../lib/helpers'
+import { GENERIC_ERROR_MSG } from '../lib/constants'
 
 const Index = () => {
     const app = useAppBridge()
@@ -25,24 +23,18 @@ const Index = () => {
     const { query, productResults, searchLoading, searchError, search } =
         useSearchProducts()
 
-    const emptyState =
-        !loading && !products?.length ? (
-            <EmptyState
-                heading="Add custom fields to your products"
-                action={{
-                    content: 'New field',
-                    onAction: () => {
-                        Redirect.create(app).dispatch(
-                            Redirect.Action.APP,
-                            '/new-field'
-                        )
-                    },
-                }}
-                image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
-            >
-                <p>Create and manage fields for your products.</p>
-            </EmptyState>
-        ) : undefined
+    const emptyState = (
+        <EmptyState
+            heading="Add custom fields to your products"
+            action={{
+                content: 'New field',
+                onAction: () => clientRedirect(app, '/new-field'),
+            }}
+            image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+        >
+            <p>Create and manage fields for your products.</p>
+        </EmptyState>
+    )
 
     const getProductMedia = (item) => {
         return (
@@ -70,6 +62,17 @@ const Index = () => {
         />
     )
 
+    const showEmptyState = () =>
+        !error &&
+        !searchError &&
+        !loading &&
+        !searchLoading &&
+        !products?.length
+
+    const showComponentLoading = () => loading && searchLoading
+
+    const getListItems = () => (query ? productResults : products) || []
+
     return (
         <Page
             title="Products"
@@ -78,7 +81,7 @@ const Index = () => {
             {(error || searchError) && (
                 <div style={{ margin: '1.6rem 0' }}>
                     <Banner title="Error" status="critical">
-                        <p>Unexpected error. Please try again later.</p>
+                        <p>{GENERIC_ERROR_MSG}</p>
                     </Banner>
                 </div>
             )}
@@ -86,9 +89,9 @@ const Index = () => {
                 <Layout.Section>
                     <Card sectioned>
                         <ResourceList
-                            emptyState={!error && !searchError && emptyState}
-                            loading={loading || searchLoading}
-                            items={(query ? productResults : products) || []}
+                            emptyState={showEmptyState() && emptyState}
+                            loading={showComponentLoading()}
+                            items={getListItems()}
                             resourceName={{
                                 singular: 'product',
                                 plural: 'products',
@@ -100,8 +103,8 @@ const Index = () => {
                                     accessibilityLabel={`View details for ${item.title}`}
                                     name={item.title}
                                     onClick={() =>
-                                        Redirect.create(app).dispatch(
-                                            Redirect.Action.APP,
+                                        clientRedirect(
+                                            app,
                                             `/product/${item.id.replace(
                                                 'gid://shopify/Product/',
                                                 ''

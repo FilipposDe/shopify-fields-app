@@ -9,6 +9,7 @@ import Router from 'koa-router'
 import mongoose from 'mongoose'
 import { deleteSession, loadSession, storeSession } from './db/sessionStorage'
 import Shop from './models/shop'
+import { INACTIVE_JWT_MSG } from '../lib/constants'
 
 dotenv.config()
 const port = parseInt(process.env.PORT, 10) || 8081
@@ -141,7 +142,7 @@ function handleInvalidJwtErrorWrapper(cb) {
             if (error instanceof Shopify.Errors.InvalidJwtError) {
                 console.log('E2')
                 ctx.res.statusCode = 400
-                ctx.res.json({ error: 'Inactive JWT' })
+                ctx.res.json({ error: INACTIVE_JWT_MSG })
 
                 // await next()
             } else {

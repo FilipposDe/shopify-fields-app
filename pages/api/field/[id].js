@@ -33,7 +33,7 @@ export default async function handler(req, res) {
                     foundField.description = description
                     await shopDoc.save()
                 }
-                return res.status(200).json({})
+                return res.status(200).json({ docId })
             }
         }
     } catch (e) {
