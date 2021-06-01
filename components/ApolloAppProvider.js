@@ -2,7 +2,7 @@ import { ApolloClient, InMemoryCache, HttpLink } from '@apollo/client'
 import { ApolloProvider } from '@apollo/client/react'
 import { relayStylePagination } from '@apollo/client/utilities'
 import { useAppBridge } from '@shopify/app-bridge-react'
-import { getAppFetch } from '../lib/helpers'
+import { getAppFetch } from '../helpers/helpers'
 
 const ApolloAppProvider = (props) => {
     const app = useAppBridge()

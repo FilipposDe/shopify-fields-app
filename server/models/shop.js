@@ -1,5 +1,5 @@
 import mongoose, { Schema } from 'mongoose'
-import { fieldTypes } from '../../lib/constants'
+import { fieldTypes } from '../../helpers/constants'
 
 const FieldSchema = new Schema({
     name: {

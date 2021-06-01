@@ -1,25 +1,22 @@
-import { Provider, useAppBridge } from '@shopify/app-bridge-react'
+import { Provider } from '@shopify/app-bridge-react'
 import '@shopify/polaris/dist/styles.css'
 import translations from '@shopify/polaris/locales/en.json'
-import {
-    AppProvider as PolarisProvider,
-    Frame,
-    Navigation,
-    TopBar,
-    Toast,
-} from '@shopify/polaris'
+import { AppProvider as PolarisProvider, Frame, Toast } from '@shopify/polaris'
 import ApolloAppProvider from '../components/ApolloAppProvider'
 import ClientRouter from '../components/ClientRouter'
-import { Redirect, AppLink, NavigationMenu } from '@shopify/app-bridge/actions'
 import '../static/custom.css'
-import { createContext, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { FrameContext } from '../components/FrameContext'
+import { AppContext } from '../components/AppContext'
 
 function MyApp(props) {
     const { Component, pageProps, shopOrigin } = props
 
-    const [appState, setAppState] = useState({ toast: '', shop: shopOrigin })
-    const contextValue = { appState, setAppState }
+    const [appState, setAppState] = useState({ shop: shopOrigin })
+    const appContextValue = { appState, setAppState }
+
+    const [globalToast, setGlobalToast] = useState('')
+    const frameContextValue = { globalToast, setGlobalToast }
 
     const appBridgeConfig = {
         apiKey: API_KEY,
@@ -31,23 +28,20 @@ function MyApp(props) {
         <PolarisProvider i18n={translations}>
             <Provider config={appBridgeConfig}>
                 <ApolloAppProvider shop={shopOrigin}>
-                    <FrameContext.Provider value={contextValue}>
-                        <Frame>
-                            {appState.toast && (
-                                <Toast
-                                    content={appState.toast}
-                                    onDismiss={() =>
-                                        setAppState({
-                                            ...appState,
-                                            toast: '',
-                                        })
-                                    }
-                                />
-                            )}
-                            <ClientRouter />
-                            <Component {...pageProps} />
-                        </Frame>
-                    </FrameContext.Provider>
+                    <AppContext.Provider value={appContextValue}>
+                        <FrameContext.Provider value={frameContextValue}>
+                            <Frame>
+                                <ClientRouter />
+                                {globalToast && (
+                                    <Toast
+                                        content={globalToast}
+                                        onDismiss={() => setGlobalToast('')}
+                                    />
+                                )}
+                                <Component {...pageProps} />
+                            </Frame>
+                        </FrameContext.Provider>
+                    </AppContext.Provider>
                 </ApolloAppProvider>
             </Provider>
         </PolarisProvider>

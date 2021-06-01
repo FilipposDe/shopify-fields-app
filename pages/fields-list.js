@@ -9,12 +9,13 @@ import {
 import { useContext } from 'react'
 import { useAppBridge } from '@shopify/app-bridge-react'
 import useSWR from 'swr'
-import { clientRedirect, getAppFetch } from '../lib/helpers'
+import { clientRedirect, getAppFetch } from '../helpers/helpers'
 import { FrameContext } from '../components/FrameContext'
+import { AppContext } from '../components/AppContext'
 
 const FieldsList = () => {
     const app = useAppBridge()
-    const { appState } = useContext(FrameContext)
+    const { appState } = useContext(AppContext)
 
     const { data, error } = useSWR(
         '/api/fields',

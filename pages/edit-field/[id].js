@@ -5,8 +5,9 @@ import { useRouter } from 'next/router'
 import { useAppBridge } from '@shopify/app-bridge-react'
 import useSWR from 'swr'
 import { FrameContext } from '../../components/FrameContext'
-import { clientRedirect, getAppFetch } from '../../lib/helpers'
-import { useEditField } from '../../lib/hooks'
+import { clientRedirect, getAppFetch } from '../../helpers/helpers'
+import { useEditField } from '../../helpers/hooks'
+import { AppContext } from '../../components/AppContext'
 
 const EditField = () => {
     const app = useAppBridge()
@@ -14,11 +15,12 @@ const EditField = () => {
     const router = useRouter()
     const { id } = router.query
 
-    const { appState, setAppState } = useContext(FrameContext)
+    const { setGlobalToast } = useContext(FrameContext)
+    const { appState } = useContext(AppContext)
 
     useEffect(() => {
         // Clear any toast
-        setAppState({ ...appState, toast: '' })
+        setGlobalToast('')
     }, [])
 
     const { editField, error: editError, loading: editLoading } = useEditField()
@@ -31,9 +33,9 @@ const EditField = () => {
     const loading = !data && !error
 
     const onSubmit = async (data) => {
-        const id = await editField(data, id)
-        if (id) {
-            clientRedirect(app, '/fields-list')
+        const idRes = await editField(data, id)
+        if (idRes) {
+            // clientRedirect(app, '/fields-list')
         }
     }
 
@@ -67,7 +69,7 @@ const EditField = () => {
                                     description: data.description,
                                     type: data.type,
                                 }}
-                                isTypeChangeable={false}
+                                isChangeable={false}
                                 onSubmit={onSubmit}
                                 loading={loading || editLoading}
                             />

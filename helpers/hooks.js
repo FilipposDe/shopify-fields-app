@@ -2,9 +2,21 @@ import { gql, useQuery, useLazyQuery, useMutation } from '@apollo/client'
 import { useEffect, useState, useContext } from 'react'
 import { useAppBridge } from '@shopify/app-bridge-react'
 import { FrameContext } from '../components/FrameContext'
-import { CustomError, getAppFetch } from '../lib/helpers'
+import { AppContext } from '../components/AppContext'
+import { CustomError, getAppFetch } from './helpers'
 import { APP_METAFIELD_NAMESPACE, GENERIC_ERROR_MSG } from './constants'
 import useSWR from 'swr'
+
+export default function useDebounceOnChange(value, cb) {
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            cb()
+        }, 500)
+        return () => {
+            clearTimeout(timeout)
+        }
+    }, [value])
+}
 
 /*******
  *
@@ -15,7 +27,8 @@ import useSWR from 'swr'
 export function useCreateField() {
     const app = useAppBridge()
 
-    const { appState, setAppState } = useContext(FrameContext)
+    const { globalToast, setGlobalToast } = useContext(FrameContext)
+    const { appState } = useContext(AppContext)
 
     const [error, setError] = useState('')
     const [loading, setLoading] = useState('')
@@ -35,7 +48,7 @@ export function useCreateField() {
                 body: JSON.stringify(data),
             })
 
-            setAppState({ ...appState, toast: 'Saved' })
+            setGlobalToast('Saved')
             setLoading(false)
 
             return res.id
@@ -52,7 +65,8 @@ export function useCreateField() {
 export function useEditField() {
     const app = useAppBridge()
 
-    const { appState, setAppState } = useContext(FrameContext)
+    const { appState } = useContext(AppContext)
+    const { globalToast, setGlobalToast } = useContext(FrameContext)
 
     const [error, setError] = useState('')
     const [loading, setLoading] = useState('')
@@ -72,7 +86,7 @@ export function useEditField() {
                 body: JSON.stringify(data),
             })
 
-            setAppState({ ...appState, toast: 'Saved' })
+            setGlobalToast('Saved')
             setLoading(false)
 
             return res.id
@@ -197,14 +211,16 @@ export function useSearchProducts() {
         fetchPolicy: 'network-only',
     })
 
+    useDebounceOnChange(queryValue, () => {
+        if (queryValue !== '') getProducts({ variables: { query: queryValue } })
+    })
+
     const search = async (v) => {
+        // useDebounceOnChange listens to new value
         setQueryValue(v)
-        if (v !== '') return getProducts({ variables: { query: v } })
     }
 
     const productResults = data?.products?.edges?.map((edge) => edge.node)
-
-    // TODO extra pages more than 200
 
     return {
         query: queryValue,
@@ -236,11 +252,11 @@ export function useProduct(id) {
         }
     `
 
-    const { data, loading, error, refetch } = useQuery(QUERY)
+    const { data, loading, error, refetch } = useQuery(QUERY, {})
 
     if (loading || error) {
         return {
-            product: null,
+            product: data?.product,
             productLoading: loading,
             productError: error,
             refetch,
@@ -266,7 +282,7 @@ export function useProduct(id) {
 
     if (!Array.isArray(metafields)) {
         return {
-            product: null,
+            product: data?.product,
             productLoading: false,
             productError: new Error(GENERIC_ERROR_MSG),
             refetch,
@@ -275,8 +291,9 @@ export function useProduct(id) {
     }
 
     if (metafields.length >= 250) {
+        // TODO more than 250
         return {
-            product: null,
+            product: data?.product,
             productLoading: false,
             productError: new Error('Product exceeded number of metafields.'),
             refetch,
@@ -344,35 +361,65 @@ export function useEditMetafields() {
         }
     `
 
+    const DELETE_MUTATION = gql`
+        mutation metafieldDelete($input: MetafieldDeleteInput!) {
+            metafieldDelete(input: $input) {
+                deletedId
+            }
+        }
+    `
+
     const [loading, setLoading] = useState(false)
+    const [error, setError] = useState(false)
 
     const [update, { error: updateError }] = useMutation(UPDATE_MUTATION)
 
     const [create, { error: createError }] = useMutation(CREATE_MUTATION)
 
+    const [del, { error: deleteError }] = useMutation(DELETE_MUTATION)
+
     const updateMetafields = async (args) => {
-        setLoading(false)
+        setLoading(true)
         try {
             await update(args)
         } catch (error) {
             // TODO error
+            console.error(error)
+            setError(error)
         }
-        setLoading(true)
-    }
-    const createMetafields = async (args) => {
         setLoading(false)
+    }
+
+    const deleteMetafield = async (args) => {
+        // Note: needs one request per item
+        setLoading(true)
+        try {
+            await del(args)
+        } catch (error) {
+            // TODO error
+            console.error(error)
+            setError(error)
+        }
+        setLoading(false)
+    }
+
+    const createMetafields = async (args) => {
+        setLoading(true)
         try {
             await create(args)
         } catch (error) {
             // TODO error
+            console.error(error)
+            setError(error)
         }
-        setLoading(true)
+        setLoading(false)
     }
 
     return {
         updateMetafields,
         createMetafields,
-        error: updateError || createError,
+        deleteMetafield,
+        error: updateError || createError || deleteError || error,
         loading: loading,
     }
 }

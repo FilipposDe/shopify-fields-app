@@ -12,9 +12,9 @@ import {
     Filters,
 } from '@shopify/polaris'
 import { useAppBridge } from '@shopify/app-bridge-react'
-import { useAllProducts, useSearchProducts } from '../lib/hooks'
-import { clientRedirect } from '../lib/helpers'
-import { GENERIC_ERROR_MSG } from '../lib/constants'
+import { useAllProducts, useSearchProducts } from '../helpers/hooks'
+import { clientRedirect } from '../helpers/helpers'
+import { GENERIC_ERROR_MSG } from '../helpers/constants'
 
 const Index = () => {
     const app = useAppBridge()
@@ -69,7 +69,7 @@ const Index = () => {
         !searchLoading &&
         !products?.length
 
-    const showComponentLoading = () => loading && searchLoading
+    const showComponentLoading = () => loading || searchLoading
 
     const getListItems = () => (query ? productResults : products) || []
 

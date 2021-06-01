@@ -2,19 +2,19 @@ import { Banner, Card, Layout, Page } from '@shopify/polaris'
 import { useContext, useEffect, useState } from 'react'
 import FieldForm from '../components/FieldForm'
 import { useAppBridge } from '@shopify/app-bridge-react'
-import { fieldTypes } from '../lib/constants'
+import { fieldTypes } from '../helpers/constants'
 import { FrameContext } from '../components/FrameContext'
-import { clientRedirect } from '../lib/helpers'
-import { useCreateField } from '../lib/hooks'
+import { clientRedirect } from '../helpers/helpers'
+import { useCreateField } from '../helpers/hooks'
 
 const NewField = () => {
     const app = useAppBridge()
 
-    const { appState, setAppState } = useContext(FrameContext)
+    const { globalToast, setGlobalToast } = useContext(FrameContext)
 
     useEffect(() => {
         // Clear any toast
-        setAppState({ ...appState, toast: '' })
+        setGlobalToast('')
     }, [])
 
     const { createField, error, loading } = useCreateField()

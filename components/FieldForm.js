@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { fieldTypes } from '../lib/constants'
+import { fieldTypes } from '../helpers/constants'
 import {
     Button,
     Card,
@@ -31,6 +31,7 @@ function FieldForm(props) {
                     type="text"
                     minLength={3}
                     maxLength={30}
+                    disabled={props.isChangeable === false}
                 />
                 <TextField
                     value={formData.description}
@@ -49,7 +50,7 @@ function FieldForm(props) {
                     ]}
                     selected={formData.type}
                     onChange={(v) => setFormData({ ...formData, type: v[0] })}
-                    disabled={props.isTypeChangeable === false}
+                    disabled={props.isChangeable === false}
                 />
                 <Button
                     submit

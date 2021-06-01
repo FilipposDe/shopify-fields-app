@@ -9,24 +9,36 @@ import {
     Loading,
     Stack,
     Banner,
+    Toast,
 } from '@shopify/polaris'
 import { useContext, useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { useAppBridge } from '@shopify/app-bridge-react'
-import { Redirect } from '@shopify/app-bridge/actions'
-import { APP_METAFIELD_NAMESPACE, fieldTypes } from '../../lib/constants'
-import { FrameContext } from '../../components/FrameContext'
-import { CustomError } from '../../lib/helpers'
-import { useProduct, useAppFields, useEditMetafields } from '../../lib/hooks'
+import {
+    APP_METAFIELD_NAMESPACE,
+    fieldTypes,
+    GENERIC_ERROR_MSG,
+} from '../../helpers/constants'
+import { AppContext } from '../../components/AppContext'
+import { clientRedirect } from '../../helpers/helpers'
+import {
+    useProduct,
+    useAppFields,
+    useEditMetafields,
+} from '../../helpers/hooks'
 
 function getMutationInputTables(appFields, shopifyMetafields, formValues) {
     const appFieldsNormalized = {}
+    if (!shopifyMetafields || !appFields) {
+        debugger
+    }
     appFields.forEach((item) => {
         appFieldsNormalized[item.name] = item
     })
 
     const fieldsToCreate = []
     const fieldsToUpdate = []
+    const fieldsToDelete = []
 
     for (const key in formValues) {
         const existsInShopify = shopifyMetafields[key]
@@ -35,10 +47,16 @@ function getMutationInputTables(appFields, shopifyMetafields, formValues) {
             const wasChanged = formValues[key] !== shopifyMetafields[key].value
             if (!wasChanged) continue
 
-            fieldsToUpdate.push({
-                id: shopifyMetafields[key].id,
-                value: formValues[key],
-            })
+            if (formValues[key] === '') {
+                fieldsToDelete.push({
+                    id: shopifyMetafields[key].id,
+                })
+            } else {
+                fieldsToUpdate.push({
+                    id: shopifyMetafields[key].id,
+                    value: formValues[key],
+                })
+            }
         } else {
             const hasNoValue = formValues[key] === ''
             if (hasNoValue) continue
@@ -55,7 +73,7 @@ function getMutationInputTables(appFields, shopifyMetafields, formValues) {
         }
     }
 
-    return { fieldsToCreate, fieldsToUpdate }
+    return { fieldsToCreate, fieldsToUpdate, fieldsToDelete }
 }
 
 function useFormValues(appFields, metafields, metafieldsAPIData) {
@@ -82,8 +100,8 @@ const Product = () => {
     const router = useRouter()
     const { id } = router.query
 
-    // Global app context
-    const { appState, setAppState } = useContext(FrameContext)
+    const { appState } = useContext(AppContext)
+    const [toast, setToast] = useState('')
 
     // Fields from the app's database
     const { appFields, appFieldsLoading, appFieldsError } = useAppFields(
@@ -92,19 +110,14 @@ const Product = () => {
     )
 
     // Shopify product data
-    const {
-        product,
-        productLoading,
-        productError,
-        metafieldsNormalized,
-        initialResponse,
-        refetch,
-    } = useProduct(id)
+    const { product, productLoading, productError, initialResponse, refetch } =
+        useProduct(id)
 
     // Two separate mutations to update product
     const {
         updateMetafields,
         createMetafields,
+        deleteMetafield,
         error: submitError,
         loading: submitLoading,
     } = useEditMetafields()
@@ -112,17 +125,18 @@ const Product = () => {
     // Form state
     const [formValues, setFormValues] = useFormValues(
         appFields,
-        metafieldsNormalized,
+        product?.metafieldsNormalized,
         initialResponse
     )
 
     const onSubmit = async () => {
         // Two separate tables, for new and existing metafields
-        const { fieldsToCreate, fieldsToUpdate } = getMutationInputTables(
-            appFields,
-            metafieldsNormalized,
-            formValues
-        )
+        const { fieldsToCreate, fieldsToUpdate, fieldsToDelete } =
+            getMutationInputTables(
+                appFields,
+                product.metafieldsNormalized,
+                formValues
+            )
 
         if (fieldsToUpdate.length > 0) {
             await updateMetafields({
@@ -133,6 +147,20 @@ const Product = () => {
                     },
                 },
             })
+        }
+
+        if (fieldsToDelete.length > 0) {
+            await Promise.all(
+                fieldsToDelete.map(async (item) => {
+                    return await deleteMetafield({
+                        variables: {
+                            input: {
+                                id: item.id,
+                            },
+                        },
+                    })
+                })
+            )
         }
 
         if (fieldsToCreate.length > 0) {
@@ -146,11 +174,15 @@ const Product = () => {
             })
         }
 
-        if (fieldsToCreate.length > 0 || fieldsToUpdate.length > 0) {
+        if (
+            fieldsToCreate.length ||
+            fieldsToUpdate.length ||
+            fieldsToDelete.length
+        ) {
             await refetch()
         }
 
-        setAppState({ ...appState, toast: 'Saved' })
+        setToast('Saved')
     }
 
     const getInputMode = (type) => {
@@ -164,13 +196,16 @@ const Product = () => {
         }
     }
 
+    // TODO important: log these
+    ;(appFieldsError || submitError) &&
+        console.log('err!', appFieldsError, submitError)
+
     return (
         <Page
             breadcrumbs={[
                 {
                     content: 'Products',
-                    onAction: () =>
-                        Redirect.create(app).dispatch(Redirect.Action.APP, '/'),
+                    onAction: () => clientRedirect(app, '/'),
                 },
             ]}
             title={
@@ -179,22 +214,24 @@ const Product = () => {
                     : ''
             }
         >
-            {appFieldsError ||
-                productError ||
-                (submitError && (
-                    <div style={{ margin: '1.6rem 0' }}>
-                        <Banner title="Error" status="critical">
-                            <p>
-                                {appFieldsError || productError || submitError}
-                            </p>
-                        </Banner>
-                    </div>
-                ))}
+            {toast && <Toast content={toast} onDismiss={() => setToast('')} />}
+            {(appFieldsError || productError || submitError) && (
+                <div style={{ margin: '1.6rem 0' }}>
+                    <Banner title="Error" status="critical">
+                        <p>
+                            {appFieldsError ||
+                                (productError ? GENERIC_ERROR_MSG : false) ||
+                                submitError}
+                        </p>
+                    </Banner>
+                </div>
+            )}
             <Layout>
                 <Layout.Section>
                     {(appFieldsLoading || productLoading || submitLoading) && (
                         <Loading />
                     )}
+
                     {Array.isArray(appFields) && product && (
                         <Card sectioned>
                             <Form onSubmit={onSubmit}>
