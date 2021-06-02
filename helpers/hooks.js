@@ -66,7 +66,7 @@ export function useEditField() {
     const app = useAppBridge()
 
     const { appState } = useContext(AppContext)
-    const { globalToast, setGlobalToast } = useContext(FrameContext)
+    const { setGlobalToast } = useContext(FrameContext)
 
     const [error, setError] = useState('')
     const [loading, setLoading] = useState('')
@@ -383,7 +383,6 @@ export function useEditMetafields() {
         try {
             await update(args)
         } catch (error) {
-            // TODO error
             console.error(error)
             setError(error)
         }
@@ -396,7 +395,6 @@ export function useEditMetafields() {
         try {
             await del(args)
         } catch (error) {
-            // TODO error
             console.error(error)
             setError(error)
         }
@@ -408,7 +406,6 @@ export function useEditMetafields() {
         try {
             await create(args)
         } catch (error) {
-            // TODO error
             console.error(error)
             setError(error)
         }

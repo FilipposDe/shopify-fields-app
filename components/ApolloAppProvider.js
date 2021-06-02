@@ -17,7 +17,6 @@ const ApolloAppProvider = (props) => {
 
     const client = new ApolloClient({
         link: httpLink,
-        // TODO retry with apollo link
         cache: new InMemoryCache({
             typePolicies: {
                 Query: {

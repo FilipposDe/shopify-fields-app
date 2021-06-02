@@ -35,7 +35,7 @@ const EditField = () => {
     const onSubmit = async (data) => {
         const idRes = await editField(data, id)
         if (idRes) {
-            // clientRedirect(app, '/fields-list')
+            clientRedirect(app, '/fields-list')
         }
     }
 

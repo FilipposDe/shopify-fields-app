@@ -41,7 +41,6 @@ export const getAppFetch = (
                     if (retryOnInactiveJWT && attempt > 0) {
                         // Wait 1 second
                         await new Promise((_) => setTimeout(_, 500))
-                        console.log(Date.now().toString())
                         return await fetch(uri, options, attempt - 1)
                     } else {
                         throw new CustomError(GENERIC_ERROR_MSG)

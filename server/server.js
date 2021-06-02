@@ -140,9 +140,6 @@ function handleInvalidJwtErrorWrapper(cb) {
             await cb(ctx, next)
         } catch (error) {
             if (error instanceof Shopify.Errors.InvalidJwtError) {
-                console.log(Date.now())
-                // TODO remove below comments
-                // NOTE: Once, token was active (possibly) 0.5s later than this line
                 ctx.response.status = 400
                 ctx.response.body = { error: INACTIVE_JWT_MSG }
             } else {
